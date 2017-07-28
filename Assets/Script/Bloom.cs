@@ -29,14 +29,14 @@ public class Bloom : MonoBehaviour
     }
 
     RenderTexture cameraRenderTexture;
-	RenderTexture stencilMask;
+    RenderTexture stencilMask;
 
     Camera camera;
 
     int bloomTex_id;
 
     [SerializeField]
-    Camera renderCamera;
+    Camera[] renderCameras;
     [SerializeField]
     Shader bloomShader;
     [SerializeField]
@@ -61,16 +61,27 @@ public class Bloom : MonoBehaviour
     {
         bloomTex_id = Shader.PropertyToID("_BloomTexture");
 
-        camera = gameObject.AddComponent<Camera>();
-        camera.allowHDR = false;
-        camera.allowMSAA = false;
-        camera.clearFlags = CameraClearFlags.Nothing;
+        //camera = gameObject.AddComponent<Camera>();
+        //camera.cullingMask = 0;
+        //camera.allowHDR = false;
+        //camera.allowMSAA = true;
+        //camera.clearFlags = CameraClearFlags.Nothing;
 
         cameraRenderTexture = new RenderTexture (Screen.width, Screen.height, 24);
-		stencilMask = new RenderTexture (Screen.width, Screen.height, 24);
+        //cameraRenderTexture.antiAliasing = 2;
 
-        renderCamera.targetTexture = cameraRenderTexture;
-	}
+        stencilMask = new RenderTexture (Screen.width, Screen.height, 0);
+
+        for (int i = 0; i < renderCameras.Length; i++)
+        {
+            renderCameras[i].targetTexture = cameraRenderTexture;
+        }
+    }
+
+    private void OnRenderImage(RenderTexture source, RenderTexture destination)
+    {
+        Graphics.Blit(cameraRenderTexture, destination, bloomMaterial, 4);
+    }
 
     void OnPostRender()
     {
@@ -78,7 +89,7 @@ public class Bloom : MonoBehaviour
 
         CommandBuffer cmdBuffer = new CommandBuffer();
 
-        Graphics.SetRenderTarget (stencilMask.colorBuffer, cameraRenderTexture.depthBuffer);
+        Graphics.SetRenderTarget(stencilMask.colorBuffer, cameraRenderTexture.depthBuffer);
 
         stencilMaskMaterial.SetFloat("_Stencil", stencil);
         Graphics.Blit(cameraRenderTexture, stencilMaskMaterial);
@@ -92,8 +103,16 @@ public class Bloom : MonoBehaviour
         Graphics.ExecuteCommandBuffer(cmdBuffer);
 
         bloomMaterial.SetFloat("_Intensity", bloomIntencity);
+    }
 
-        Graphics.Blit(cameraRenderTexture, bloomMaterial, 4);
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Alpha1))
+            stencil = 1;
+        if (Input.GetKeyDown(KeyCode.Alpha2))
+            stencil = 2;
+        if (Input.GetKeyDown(KeyCode.Alpha3))
+            stencil = 3;
     }
 
 
